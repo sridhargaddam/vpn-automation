@@ -1,0 +1,23 @@
+---
+- name: "Delete VNF VM"
+  os_server:
+    cloud: rdocloud
+    name: vnf_ipsec
+    state: absent
+
+- name: "Delete VNF ports"
+  os_port:
+    cloud: rdocloud
+    name: "{{ item }}"
+    state: absent
+    network: Ext_Net_Site_A
+  with_items:
+    - vnf_ext_port
+    - vnf_int_port
+
+- name: "Delete Security Groups"
+  os_security_group:
+    cloud: rdocloud
+    state: absent
+    name: vpn_sg
+

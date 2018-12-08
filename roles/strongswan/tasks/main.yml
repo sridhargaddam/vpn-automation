@@ -1,0 +1,46 @@
+---
+- name: Enable epel-release
+  yum: name=epel-release state=present
+
+- name: Install necessary packages
+  yum:
+    name:
+      - strongswan
+      - iptables
+      - tmux
+    state: present
+
+- name: Disable selinux
+  selinux:
+    state: disabled
+
+- name: Enable Forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    sysctl_set: yes
+
+- name: Copy StrongSwan Config Files
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+  with_items:
+     - { src: 'config/ipsec.conf', dest: '/etc/strongswan/ipsec.conf'}
+     - { src: 'config/ipsec.secrets', dest: '/etc/strongswan/ipsec.secrets'}
+     - { src: 'config/strongswan.conf', dest: '/etc/strongswan/strongswan.conf'}
+
+- name: Copy Updown Script
+  copy:
+    src: config/ipsec-updown.sh
+    dest: /etc/strongswan/ipsec-updown.sh
+    owner: root
+    group: root
+    mode: u=rwx,g=rx,o=r
+
+- name: Start StrongSwan Daemon
+  service:
+    name: strongswan
+    state: started
+    enabled: yes

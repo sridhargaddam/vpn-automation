@@ -1,0 +1,8 @@
+---
+- name: Teardown VNF Setup on RDOCloud
+  hosts: 127.0.0.1
+  connection: local
+
+  tasks:
+    - include_tasks: delete-vnf.yaml
+    - include_tasks: delete-net.yaml

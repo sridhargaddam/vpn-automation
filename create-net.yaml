@@ -1,0 +1,35 @@
+---
+- name: Create a network
+  os_network:
+    name: "{{ item }}"
+    cloud: rdocloud
+  with_items:
+    - Tenant_Net_Site_A
+    - Ext_Net_Site_A
+
+- name: Create necessary subnets
+  os_subnet:
+    name: "{{ item.name }}"
+    network_name: "{{ item.name }}"
+    cidr: "{{ item.cidr }}"
+    cloud: rdocloud
+    dns_nameservers:
+      - 8.8.8.8
+  with_items:
+     - { name: 'Tenant_Net_Site_A', cidr: '10.10.10.0/24'}
+     - { name: 'Ext_Net_Site_A', cidr: '172.10.10.0/24'}
+
+- name: Create routers
+  os_router:
+    name: "{{ item.name }}"
+    network: 38.145.32.0/22
+    interfaces:
+      - "{{ item.network }}"
+  with_items:
+    - { name: 'Router1_Site_A', network: 'Tenant_Net_Site_A' }
+    - { name: 'DCGW_Site_A', network: 'Ext_Net_Site_A' }
+
+- name: Update the Router with VNF as the next-hop for reaching AWS VPC
+  shell: |
+    openstack router set --route destination=10.20.20.0/24,gateway=10.10.10.100 Router1_Site_A
+  ignore_errors: yes

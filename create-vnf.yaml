@@ -1,0 +1,102 @@
+---
+- name: "Create Security Groups"
+  os_security_group:
+    cloud: rdocloud
+    name: vpn_sg
+    description: Security groups for the VNF (IPSEC)
+
+- name: "Create VNF external port"
+  os_port:
+    cloud: rdocloud
+    name: vnf_ext_port
+    state: present
+    network: Ext_Net_Site_A
+    security_groups: vpn_sg
+    #mac_address: fa:16:3e:68:68:68
+    fixed_ips:
+      - ip_address: 172.10.10.100
+
+- name: "Create VNF internal port"
+  os_port:
+    cloud: rdocloud
+    name: vnf_int_port
+    state: present
+    security_groups: vpn_sg
+    network: Tenant_Net_Site_A
+    fixed_ips:
+      - ip_address: 10.10.10.100
+
+- name: "Create VNF Instance"
+  os_server:
+    cloud: rdocloud
+    name: vnf_ipsec
+    key_name: RDOCloudKeyPair
+    image: CentOS-7-x86_64-GenericCloud-1804_02
+    config_drive: yes
+    auto_ip: no
+    flavor: m1.medium
+    nics: "port-name=vnf_int_port,port-name=vnf_ext_port"
+    wait: yes
+    timeout: 300
+  register: vnf_ipsec
+
+- name: "Associate a Floating IP to the VNF"
+  os_floating_ip:
+    cloud: rdocloud
+    reuse: yes
+    server: vnf_ipsec
+    network: 38.145.32.0/22
+    fixed_address: 172.10.10.100
+    purge: yes
+    wait: true
+    timeout: 180
+  register: vnf_fip
+
+- name: "Create Security Group rules for TCP traffic"
+  os_security_group_rule:
+    cloud: rdocloud
+    security_group: vpn_sg
+    protocol: tcp
+    remote_ip_prefix: 0.0.0.0/0
+    port_range_min: "{{ item }}"
+    port_range_max: "{{ item }}"
+  with_items:
+    - 80
+    - 22
+
+- name: "Create Security Group rules for UDP Traffic"
+  os_security_group_rule:
+    cloud: rdocloud
+    security_group: vpn_sg
+    protocol: udp
+    remote_ip_prefix: 0.0.0.0/0
+    port_range_min: "{{ item }}"
+    port_range_max: "{{ item }}"
+  with_items:
+    - 500
+    - 4500
+
+- name: "Create Security Group rules for ICMP Traffic"
+  os_security_group_rule:
+    cloud: rdocloud
+    security_group: vpn_sg
+    protocol: icmp
+    remote_ip_prefix: 0.0.0.0/0
+
+- add_host:
+    name: vnf_ipsec
+    groups: rdocloud_instances
+    ansible_host: "{{ vnf_fip.floating_ip.floating_ip_address }}"
+    ansible_user: centos
+    ansible_become: true
+    host_key_checking: false
+
+- debug:
+    msg: "IPAddress of vnf: {{ vnf_fip.floating_ip.floating_ip_address }}"
+
+- name: Waiting for the VNF to come up
+  local_action: wait_for host="{{ vnf_fip.floating_ip.floating_ip_address }}" 
+            port=22
+            state=started
+            delay=2
+            timeout=300

@@ -1,0 +1,13 @@
+---
+- name: Setup VNF on RDOCloud for IPSEC Connectivity
+  hosts: 127.0.0.1
+  connection: local
+
+  tasks:
+    - include_tasks: create-net.yaml
+    - include_tasks: create-vnf.yaml
+
+- name: Install StrongSwan on VNF and configure IPSEC tunnel to AWS
+  hosts: vnf_ipsec
+  roles:
+    - strongswan

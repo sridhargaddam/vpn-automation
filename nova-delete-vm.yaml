@@ -1,0 +1,16 @@
+---
+- name: "Delete VNF Instance"
+  os_server:
+    cloud: rdocloud
+    name: vm1
+    state: absent
+    wait: yes
+    timeout: 300
+
+- name: "Delete the VM1 port"
+  os_port:
+    cloud: rdocloud
+    name: vm1_int_port
+    state: absent
+
+

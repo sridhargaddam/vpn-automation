@@ -1,0 +1,24 @@
+---
+- name: "Create a port for VM1 on Tenant Network"
+  os_port:
+    cloud: rdocloud
+    name: vm1_int_port
+    state: present
+    #security_groups: vpn_sg
+    network: Tenant_Net_Site_A
+    fixed_ips:
+      - ip_address: 10.10.10.50
+
+- name: "Create a VM on the tenant network"
+  os_server:
+    cloud: rdocloud
+    name: vm1
+    key_name: RDOCloudKeyPair
+    #image: CentOS-7-x86_64-GenericCloud-1701
+    image: cirros
+    config_drive: yes
+    auto_ip: no
+    flavor: m1.medium
+    nics: "port-name=vm1_int_port"
+    wait: yes
+    timeout: 300
