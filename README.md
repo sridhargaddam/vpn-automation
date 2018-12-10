@@ -6,6 +6,7 @@ We spawn a CentOS7 VM (as a VNF) in an OpenStack tenant network, install StrongS
 
 The topology would be as shown below.
 
+![topology](https://user-images.githubusercontent.com/6574656/49713519-10e7db80-fc6f-11e8-97eb-958821ff20ca.png)
 
 ## Pre-setup
 
