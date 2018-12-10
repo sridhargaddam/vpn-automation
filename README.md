@@ -27,3 +27,15 @@ To spawn a tiny VM on the tenant network to validate reachability to AWS VPC, us
 ```bash
 $ ansible-playbook spawn-vm.yml
 ```
+
+To delete the VM that was spawned to validate reachability to AWS VPC, use the following playbook.
+
+```bash
+ansible-playbook teardown-vm.yml
+```
+
+To delete all the resources (including the VNF), use the following playbook.
+
+```bash
+ansible-playbook teardown-vnf-rdocloud.yml
+```
