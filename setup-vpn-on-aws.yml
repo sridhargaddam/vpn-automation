@@ -8,8 +8,8 @@
     ami: ami-013b0964
     hosts_file: inventory
     vpc_id: vpc-05667f0130ac50295
-    access_key: AKIAJVHAPVCQEYMLS2IQ
-    secret_key: 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
+    access_key: <access-key>
+    secret_key: <secret-key>
 
   tasks:
   - name: Create a Security Group with required rules
