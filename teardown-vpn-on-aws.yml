@@ -1,0 +1,78 @@
+---
+- hosts: localhost
+  become: true
+  gather_facts: False
+  vars:
+    region: us-east-2
+    instance_type: t2.micro
+    ami: ami-013b0964
+    hosts_file: inventory
+    vpc_id: vpc-05667f0130ac50295
+    access_key: AKIAJVHAPVCQEYMLS2IQ
+    secret_key: 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
+
+  tasks:
+  - name: Delete the VPN Connection
+    ec2_vpc_vpn:
+      state: absent
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      region: "{{ region }}"
+      tags:
+        Name: VPNToRDOCloud
+  - name: Delete the Virtual Private Gateway
+    ec2_vpc_vgw:
+      state: absent
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      region: "{{ region }}"
+      vpc_id: "{{ vpc_id }}"
+      name: vgwForRDOCloud
+      type: ipsec.1
+    register: vgwForRDOCloud
+  - name: Delete the Customer Gateway
+    ec2_customer_gateway:
+      state: absent
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      ip_address: 38.145.33.45
+      name: rdoCloudCustomerGateway
+      region: "{{ region }}"
+      routing: static
+    register: rdoCloudCustomerGateway
+#  - name: Delete the Demo ec2 instance
+#    ec2:
+#      state: absent
+#      aws_access_key: "{{ access_key }}"
+#      aws_secret_key: "{{ secret_key }}"
+#      key_name: OSP_POC_EastVPC
+#      group: vpn-demo-sg
+#      instance_type: "{{ instance_type}}"
+#      image: "{{ ami }}"
+#      wait: true
+#      region: "{{ region }}"
+#      vpc_subnet_id: subnet-004730656b8a03c94
+#      count_tag:
+#        Name: DemoInstance
+#      instance_tags:
+#        Name: DemoInstance
+#    register: ec2
+#  - name: Delete the Security Group with required rules
+#    ec2_group:
+#      state: absent
+#      name: sg_vpn
+#      aws_access_key: "{{ access_key }}"
+#      aws_secret_key: "{{ secret_key }}"
+#      name: "vpn-demo-sg"
+#      description: "Security Group for VPN demo"
+#      region: "{{ region }}"
+#      vpc_id: "{{ vpc_id }}"
+#      rules:
+#        - proto: tcp
+#          from_port: 22
+#          to_port: 22
+#          cidr_ip: 0.0.0.0/0
+#        - proto: icmp
+#          from_port: -1
+#          to_port: -1
+#          cidr_ip: 0.0.0.0/0

@@ -1,0 +1,93 @@
+---
+- hosts: localhost
+  become: true
+  gather_facts: False
+  vars:
+    region: us-east-2
+    instance_type: t2.micro
+    ami: ami-013b0964
+    hosts_file: inventory
+    vpc_id: vpc-05667f0130ac50295
+    access_key: AKIAJVHAPVCQEYMLS2IQ
+    secret_key: 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
+
+  tasks:
+  - name: Create a Security Group with required rules
+    ec2_group:
+      name: sg_vpn
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      name: "vpn-demo-sg"
+      description: "Security Group for VPN demo"
+      region: "{{ region }}"
+      vpc_id: "{{ vpc_id }}"
+      rules:
+        - proto: tcp
+          from_port: 22
+          to_port: 22
+          cidr_ip: 0.0.0.0/0
+        - proto: icmp
+          from_port: -1
+          to_port: -1
+          cidr_ip: 0.0.0.0/0
+  - name: Create an ec2 instance
+    ec2:
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      key_name: OSP_POC_EastVPC
+      group: vpn-demo-sg
+      instance_type: "{{ instance_type}}"
+      image: "{{ ami }}"
+      wait: true
+      region: "{{ region }}"
+      count: 1 # default
+      vpc_subnet_id: subnet-004730656b8a03c94
+      count_tag:
+        Name: DemoInstance
+      instance_tags:
+        Name: DemoInstance
+    register: ec2
+  - name: Create a Customer Gateway
+    ec2_customer_gateway:
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      ip_address: 38.145.33.45
+      name: rdoCloudCustomerGateway
+      region: "{{ region }}"
+      routing: static
+    register: rdoCloudCustomerGateway
+  - debug:
+      msg: "CustomerGateway: {{ rdoCloudCustomerGateway.gateway.customer_gateway.customer_gateway_id }}"
+  - name: Create a new VGW attached to a specific VPC
+    ec2_vpc_vgw:
+      state: present
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      region: "{{ region }}"
+      vpc_id: "{{ vpc_id }}"
+      name: vgwForRDOCloud
+      type: ipsec.1
+    register: vgwForRDOCloud
+  - debug:
+      msg: "VGW: {{ vgwForRDOCloud.vgw.id }}" 
+  - name: create a VPN connection
+    ec2_vpc_vpn:
+      state: present
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      region: "{{ region }}"
+      customer_gateway_id: "{{ rdoCloudCustomerGateway.gateway.customer_gateway.customer_gateway_id }}"
+      vpn_gateway_id: "{{ vgwForRDOCloud.vgw.id }}"
+      routes:
+        - 10.10.10.0/24
+        - 172.10.10.0/24
+      tags:
+        Name: VPNToRDOCloud
+      static_only: true
+      tunnel_options:
+        - { TunnelInsideCidr: '169.254.100.1/30', PreSharedKey: '_BIRG9t3A.CQnNANKVEW5M_uJ7AK6m5E' }
+        - { TunnelInsideCidr: '169.254.100.5/30', PreSharedKey: 'rTAxQwVsa.o.7YGOzh9rHfh9AGCitYcr' }
+    register: vpnToRDOCloud
+  - debug:
+      msg: "IPSEC Tunnel Endpoint IPs: {{ vpnToRDOCloud.vgw_telemetry[0].outside_ip_address, vpnToRDOCloud.vgw_telemetry[1].outside_ip_address }}" 
+
